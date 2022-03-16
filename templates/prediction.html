@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+    <title>OccazAuto</title>
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="Free Web tutorials">
+        <meta name="keywords" content="HTML, CSS, Flask, Python">
+        <meta name="author" content="Audrey Ntep">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel ="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+        <header>
+            <h1>Estimation de prix d'un véhicule d'occasion</h1>
+            {% block header %}{% endblock %}
+        </header>
+        <main>
+            {{pred}}
+            {% block main %}{% endblock %}
+        </main>
+        <script type ="text/javascript" src="{{ url_for('static', filename='js/index.js') }}"></script>
+    </body>
+</html>
