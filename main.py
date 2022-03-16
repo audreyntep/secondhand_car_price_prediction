@@ -1,4 +1,4 @@
-from app import create_app as create_app_website
+from web import create_app as create_app_website
 from api import create_app as create_app_api
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from werkzeug.serving import run_simple
