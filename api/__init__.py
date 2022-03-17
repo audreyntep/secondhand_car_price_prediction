@@ -11,6 +11,7 @@ def create_app():
     app.config['SECRET_KEY'] = 'test'
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///database.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+    #print('api',app.config)
 
     db.init_app(app)
     create_database(app)
@@ -19,8 +20,7 @@ def create_app():
     # Define route with Resource
     api.add_resource(Predictions, '/prediction')
     api.add_resource(Criterias, '/criteres')
-
-    print('api',app.config)
+    
     return app
 
 # Ajout des paramètres URL
