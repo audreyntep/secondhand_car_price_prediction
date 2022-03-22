@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import Api
 from .models import db
-from .api import Predictions, Prediction, Criterias, Criteria, Home
+from .api import DecisionTree, RandomForest, Prediction, Criterias, Criteria, Home
 from os import path
 
 
@@ -21,7 +21,8 @@ def create_app():
 
     api = Api(app)
     # Define route with Resource
-    api.add_resource(Predictions, '/prediction')
+    api.add_resource(DecisionTree, '/decisionTree')
+    api.add_resource(RandomForest, '/randomForest')
     api.add_resource(Prediction, '/prediction/<id>')
     api.add_resource(Criterias, '/criteres')
     api.add_resource(Criteria, '/<critere>')

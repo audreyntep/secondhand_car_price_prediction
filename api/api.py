@@ -1,6 +1,8 @@
+import json
 from flask_restful import reqparse, abort, Resource
 from .models import db, Estimations, Brands, Fuels, Gearboxes, Pollutions, Doors, Seats
 from model_audrey import get_data_from_csv, get_decision_tree_rfe
+from model_anouar import get_random_forest, scale_data
 import pandas as pd
 
 
@@ -24,11 +26,52 @@ def abort_if_id_doesnt_exist(id):
     if Estimations.query.get(id) is None:
         abort(404, message="Estimation {} doesn't exist".format(id))
 
+# retourne un dictionnaire de critères {id:name}
+def get_criterias_from_BDD(Object):
+    criterias = {}
+    for i in Object:
+        criterias[i.id] = i.name
+    return criterias
+
+# retourne une prédiction
+def get_prediction_from_model(data, model):
+    print(data)
+    if model == 'decision tree':
+        prediction = get_decision_tree_rfe().predict(data)
+        for p in prediction:
+            return p
+    if model == 'random forest':
+        prediction = get_random_forest().predict(data)
+        for p in prediction:
+            return p
+
+# retourne un dictionnaire de predictions
+def get_estimations_from_BDD(Estimation):
+    estimations = {}
+    print(Estimation)
+    for i in Estimation:
+        estimations[i.id] = {
+            'brand':Brands.query.filter_by(id=i.brand_id).first().name,
+            'fuel':Fuels.query.filter_by(id=i.fuel_id).first().name,
+            'gearbox':Gearboxes.query.filter_by(id=i.gearbox_id).first().name,
+            'year':i.year,
+            'kilometers':i.kilometers,
+            'door':i.door,
+            'seat':i.seat,
+            'co2':i.co2,
+            'location':i.location,
+            'estimation':i.estimation,
+            'created_at':"{}-{}-{}".format(i.created_at.year,i.created_at.month,i.created_at.day)
+            }
+    return estimations
+
+
 # GET to Home
 class Home(Resource):
     def get(self):
         #return model_audrey.get_data_from_csv()
         return "Welcome on Autoccaz Api"
+
 
 # GET to show a list of all criterias, and POST to add a new value
 class Criterias(Resource):
@@ -73,6 +116,7 @@ class Criterias(Resource):
                 db.session.commit()
             return 204
         
+
 # GET retourne la liste des valeurs pour une critère
 class Criteria(Resource):
     
@@ -92,48 +136,9 @@ class Criteria(Resource):
             return get_criterias_from_BDD(Seats.query.all())
 
 
-# GET to show a list of all estimations, and POST to add a new estimation
-class Predictions(Resource):
-    # retourne la liste des estimations
-    def get(self):
-        return get_estimations_from_BDD(Estimations.query.all())
-
-    # insert une estimation
-    def post(self):
-        # récupération des arguments
-        args = parser.parse_args()
-        print(args)
-        year=int(args['year'])
-        kilometers=int(args['kilometers'])
-        door = Doors.query.filter_by(id=int(args['door'])).first().name
-        seat = Seats.query.filter_by(id=int(args['seat'])).first().name
-        co2 = Pollutions.query.filter_by(id=int(args['co2'])).first().name
-
-        # importation du modèle, calcul de la prediction
-        X = pd.DataFrame(data=[[year, door, seat, kilometers]], columns=['Année','nbPortes','nbPlace','Kilométrage'])
-        prediction = round(get_prediction_from_model(X))
-        print(prediction)
-
-        # insertion de la prediction dans la BDD
-        if args['brand'] != '':
-            estimation = Estimations(
-                brand_id=args['brand'],
-                fuel_id=args['fuel'],
-                gearbox_id=args['gearbox'],
-                year=year,
-                kilometers=kilometers,
-                door=door,
-                seat=seat,
-                co2=co2,
-                location=int(args['location']),
-                estimation=prediction)
-            db.session.add(estimation)
-            db.session.commit()
-
-        return estimation.id
-
 # GET retourne une prédiction, DELETE pour supprimer une prédiction
 class Prediction(Resource):
+
     # retourne l'estimation de l'id renseigné
     def get(self, id):
         abort_if_id_doesnt_exist(id)
@@ -159,36 +164,91 @@ class Prediction(Resource):
         return '', 204
 
 
-# retourne un dictionnaire de critères {id:name}
-def get_criterias_from_BDD(Object):
-    criterias = {}
-    for i in Object:
-        criterias[i.id] = i.name
-    return criterias
+# ARBRE DE DECISION
+# GET to show a list of all estimations, and POST to add a new estimation
+class DecisionTree(Resource):
+    # retourne la liste des estimations
+    def get(self):
+        return get_estimations_from_BDD(Estimations.query.all())
 
-# retourne une prédiction
-def get_prediction_from_model(data):
-    print(data)
-    prediction = get_decision_tree_rfe().predict(data)
-    for p in prediction:
-        return p
+    # insert une estimation
+    def post(self):
+        # récupération des arguments
+        args = parser.parse_args()
+        print(args)
+        year=int(args['year'])
+        kilometers=int(args['kilometers'])
+        door = Doors.query.filter_by(id=int(args['door'])).first().name
+        seat = Seats.query.filter_by(id=int(args['seat'])).first().name
+        co2 = Pollutions.query.filter_by(id=int(args['co2'])).first().name
 
-# retourne un dictionnaire de predictions
-def get_estimations_from_BDD(Estimation):
-    estimations = {}
-    print(Estimation)
-    for i in Estimation:
-        estimations[i.id] = {
-            'brand':Brands.query.filter_by(id=i.brand_id).first().name,
-            'fuel':Fuels.query.filter_by(id=i.fuel_id).first().name,
-            'gearbox':Gearboxes.query.filter_by(id=i.gearbox_id).first().name,
-            'year':i.year,
-            'kilometers':i.kilometers,
-            'door':i.door,
-            'seat':i.seat,
-            'co2':i.co2,
-            'location':i.location,
-            'estimation':i.estimation,
-            'created_at':"{}-{}-{}".format(i.created_at.year,i.created_at.month,i.created_at.day)
-            }
-    return estimations
+        # importation du modèle, calcul de la prediction
+        X = pd.DataFrame(data=[[year, door, seat, kilometers]], columns=['Année','nbPortes','nbPlace','Kilométrage'])
+        prediction = round(get_prediction_from_model(X, 'decision tree'))
+        print(prediction)
+
+        # insertion de la prediction dans la BDD
+        if args['brand'] != '':
+            estimation = Estimations(
+                brand_id=args['brand'],
+                fuel_id=args['fuel'],
+                gearbox_id=args['gearbox'],
+                year=year,
+                kilometers=kilometers,
+                door=door,
+                seat=seat,
+                co2=co2,
+                location=int(args['location']),
+                estimation=prediction)
+            db.session.add(estimation)
+            db.session.commit()
+
+        return estimation.id
+
+
+
+# MODEL RANDOM FOREST
+Marques = {
+    'BMW':0,
+    'RENAULT':1,
+    'PEUGEOT':2,
+    'VOLKSWAGEN':3,
+    'AUDI':4,
+}
+Carburants = {
+    'Diesel':0,
+    'Essence':1,
+    'Electric':2,
+}
+Transmissions = {
+    'Manuelle':0,
+    'Automatique':1,
+}
+
+
+
+# GET to show a list of all estimations, and POST to add a new estimation
+class RandomForest(Resource):
+    # retourne la liste des estimations
+    def get(self):
+        #return get_estimations_from_BDD(Estimations.query.all())
+        return json.dumps([Marques, Carburants,Transmissions])
+
+    # insert une estimation
+    def post(self):
+        # récupération des arguments
+        args = parser.parse_args()
+        print(args)
+        brand = Marques.get(args['brand'])
+        year=int(args['year'])
+        fuel=Carburants.get(args['fuel'])
+        zipcode=int(args['location'])
+        km=int(args['kilometers'])
+        gearbox = Transmissions.get(args['gearbox'])
+        
+        # importation du modèle, calcul de la prediction
+        X = pd.DataFrame(data=[[brand, year ,fuel, zipcode, km]], columns=['Marque','Année','Carburant','CodePostal','Kilométrage'])
+        print(X)
+        prediction = round(get_prediction_from_model(scale_data(X), 'random forest'))
+        print(prediction)
+        return prediction

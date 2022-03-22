@@ -29,7 +29,7 @@ def home():
     if request.method  == 'POST':
         # récupération des paramètres URL et envoi d'une requête de prédiction à l'api
         r = requests.post(
-            url=url+'prediction', 
+            url=url+'decisionTree', 
             data = {
                 'brand':request.form.get('brand'),
                 'year': request.form.get('year'),

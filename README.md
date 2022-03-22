@@ -14,6 +14,14 @@ $ falsk run
 
 ### URL
 
-web : 'http:localhost:5000'
+website
+'http:localhost:5000/web'
 
-api : 'http:localhost:5000/api'
+api
+'http:localhost:5000/'
+
+prediction avec random forest
+'http:localhost:5000/randomForest'
+
+prediction avec arbre de décision
+'http:localhost:5000/decisionTree'
