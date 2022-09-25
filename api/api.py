@@ -1,8 +1,7 @@
 import json
 from flask_restful import reqparse, abort, Resource
 from .models import db, Estimations, Brands, Fuels, Gearboxes, Pollutions, Doors, Seats
-from model_audrey import get_data_from_csv, get_decision_tree_rfe
-from model_anouar import get_random_forest, scale_data
+from model_audrey import get_data_from_csv, get_decision_tree_rfe, get_random_forest, scale_data
 import pandas as pd
 
 
